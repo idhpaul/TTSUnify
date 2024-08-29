@@ -1,10 +1,94 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Index";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@section Styles {
+    @* <link rel="stylesheet" href="~/css/Index.css" /> *@
+    <style>
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group input[type="text"] {
+            width: 800px;
+            margin-right: 10px;
+        }
+
+        /* Solid border */
+        hr.solid {
+            border-top: 3px solid #bbb;
+        }
+        
+    </style>
+}
+
+
+
+<div>
+    <h2>[대사 입력기]</h2>
+    <hr class="solid">
+    <div id="input-container"></div>
+    <button id="add-button">+</button>
+    <button id="merge-button">합치기</button>
+    <hr class="solid">
+    <h3>결과:</h3>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('add-button').addEventListener('click', function  () {
+            // 입력상자 그룹을 생성
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group';
+
+            // 입력상자
+            const inputBox = document.createElement('input');
+            inputBox.type = 'text';
+            inputBox.placeholder = '대사를 입력하세요';
+
+            // 성별 옵션
+            const maleOption = document.createElement('input');
+            maleOption.type = 'radio';
+            maleOption.name = `gender${document.getElementsByClassName('input-group').length}`;
+            maleOption.value = '남성';
+
+            const femaleOption = document.createElement('input');
+            femaleOption.type = 'radio';
+            femaleOption.name = `gender${document.getElementsByClassName('input-group').length}`;
+            femaleOption.value = '여성';
+
+            const maleLabel = document.createElement('label');
+            maleLabel.textContent = '남성';
+            maleLabel.appendChild(maleOption);
+
+            const femaleLabel = document.createElement('label');
+            femaleLabel.textContent = '여성';
+            femaleLabel.appendChild(femaleOption);
+
+            // 입력상자 그룹에 추가
+            inputGroup.appendChild(inputBox);
+            inputGroup.appendChild(maleLabel);
+            inputGroup.appendChild(femaleLabel);
+
+            // 입력상자 그룹을 컨테이너에 추가
+            document.getElementById('input-container').appendChild(inputGroup);
+        });
+
+        document.getElementById('merge-button').addEventListener('click', function  () {
+            const inputGroups = document.getElementsByClassName('input-group');
+            let mergedText = '';
+
+            for (let i = 0; i < inputGroups.length; i++) {
+                const inputBox = inputGroups[i].querySelector('input[type="text"]');
+                const selectedGender = inputGroups[i].querySelector('input[type="radio"]:checked');
+                const genderText = selectedGender ? `${selectedGender.value} : ` : '';
+
+                // HTML 줄 바꿈 태그 <br>을 사용하여 줄 바꿈 처리
+                mergedText += `${genderText}"${inputBox.value}"<br>`;
+            }
+
+            document.getElementById('result').innerHTML = mergedText.trim();
+        });
+    </script>
 </div>
