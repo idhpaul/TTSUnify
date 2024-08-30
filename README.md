@@ -3,3 +3,8 @@
 ## Descrption
 
 'TTSUnify' is a tool that converts scripts into complete audio files by using advanced Text-to-Speech (TTS) technology. It allows users to generate male and female voice lines from text and seamlessly merges them into a single audio file. Ideal for content creators and developers, this tool simplifies the process of creating high-quality, multi-voice audio from written scripts.
+
+## Using TTS Service list
+|Service| ref |
+|--|--|
+| Google<br>TTS | **General** : [https://cloud.google.com/text-to-speech/docs/before-you-begin?hl=ko](https://cloud.google.com/text-to-speech/docs/before-you-begin?hl=ko) <br>**.NET gcloud CLI Setup** : [https://cloud.google.com/sdk/docs/install-sdk?hl=ko](https://cloud.google.com/sdk/docs/install-sdk?hl=ko)<br> **C# Client Setup** : [https://cloud.google.com/text-to-speech/docs/libraries?hl=ko#client-libraries-install-csharp](https://cloud.google.com/text-to-speech/docs/libraries?hl=ko#client-libraries-install-csharp)<br> **C# TTS Doc** : [https://cloud.google.com/dotnet/docs/reference/Google.Cloud.TextToSpeech.V1/latest/index](https://cloud.google.com/dotnet/docs/reference/Google.Cloud.TextToSpeech.V1/latest/index)|

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Diagnostics;
 
 namespace TTSUnify.Pages
 {
@@ -10,11 +11,12 @@ namespace TTSUnify.Pages
         public IndexModel(ILogger<IndexModel> logger)
         {
             _logger = logger;
+            Console.WriteLine("IndexModel");
         }
 
         public void OnGet()
         {
-
+            Console.WriteLine("OnGet");
         }
     }
 }
