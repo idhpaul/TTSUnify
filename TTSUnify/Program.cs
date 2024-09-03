@@ -1,3 +1,6 @@
+
+using Microsoft.AspNetCore.Antiforgery;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

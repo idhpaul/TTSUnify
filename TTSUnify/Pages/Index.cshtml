@@ -24,71 +24,87 @@
     </style>
 }
 
+<form id="ttsForm" method="post">
+    <div id="inputContainer">
+        <div class="input-group">
+            <input type="text" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here" />
+            <div class="gender-inputs">
+                <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> Male</label>
+                <label><input type="radio" name="UserInputs[0].Gender" value="Female"> Female</label>
+            </div>
+        </div>
+    </div>
+    <button type="button" id="addButton">+ Add Input</button>
+    <button type="submit">Convert to Speech</button>
 
 
-<div>
-    <h2>[대사 입력기]</h2>
-    <hr class="solid">
-    <div id="input-container"></div>
-    <button id="add-button">+</button>
-    <button id="merge-button">합치기</button>
-    <hr class="solid">
-    <h3>결과:</h3>
-    <div id="result"></div>
+</form>
 
-    <script>
-        document.getElementById('add-button').addEventListener('click', function  () {
-            // 입력상자 그룹을 생성
-            const inputGroup = document.createElement('div');
-            inputGroup.className = 'input-group';
+<div id="audioContainer"></div>
+<button type="button" id="combineButton">Combine Audio</button>
 
-            // 입력상자
-            const inputBox = document.createElement('input');
-            inputBox.type = 'text';
-            inputBox.placeholder = '대사를 입력하세요';
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        let inputCount = 1;
 
-            // 성별 옵션
-            const maleOption = document.createElement('input');
-            maleOption.type = 'radio';
-            maleOption.name = `gender${document.getElementsByClassName('input-group').length}`;
-            maleOption.value = '남성';
-
-            const femaleOption = document.createElement('input');
-            femaleOption.type = 'radio';
-            femaleOption.name = `gender${document.getElementsByClassName('input-group').length}`;
-            femaleOption.value = '여성';
-
-            const maleLabel = document.createElement('label');
-            maleLabel.textContent = '남성';
-            maleLabel.appendChild(maleOption);
-
-            const femaleLabel = document.createElement('label');
-            femaleLabel.textContent = '여성';
-            femaleLabel.appendChild(femaleOption);
-
-            // 입력상자 그룹에 추가
-            inputGroup.appendChild(inputBox);
-            inputGroup.appendChild(maleLabel);
-            inputGroup.appendChild(femaleLabel);
-
-            // 입력상자 그룹을 컨테이너에 추가
-            document.getElementById('input-container').appendChild(inputGroup);
+        $('#addButton').click(function () {
+            $('#inputContainer').append(`
+                    <div class="input-group">
+                        <input type="text" name="UserInputs[${inputCount}].Text" class="text-input" placeholder="Enter text here" />
+                        <div class="gender-inputs">
+                            <label><input type="radio" name="UserInputs[${inputCount}].Gender" value="Male" checked> Male</label>
+                            <label><input type="radio" name="UserInputs[${inputCount}].Gender" value="Female"> Female</label>
+                        </div>
+                    </div>
+                `);
+            inputCount++;
         });
 
-        document.getElementById('merge-button').addEventListener('click', function  () {
-            const inputGroups = document.getElementsByClassName('input-group');
-            let mergedText = '';
-
-            for (let i = 0; i < inputGroups.length; i++) {
-                const inputBox = inputGroups[i].querySelector('input[type="text"]');
-                const selectedGender = inputGroups[i].querySelector('input[type="radio"]:checked');
-                const genderText = selectedGender ? `${selectedGender.value} : ` : '';
-
-                // HTML 줄 바꿈 태그 <br>을 사용하여 줄 바꿈 처리
-                mergedText += `${genderText}"${inputBox.value}"<br>`;
-            }
-
-            document.getElementById('result').innerHTML = mergedText.trim();
+        $('#ttsForm').on('submit', function (event) {
+            event.preventDefault();
+            
+            $.ajax({
+                url: '@Url.Page("Index")',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function (audioUrls) {
+                    $('#audioContainer').empty();
+                    audioUrls.forEach(function (audioUrl) {
+                        const audioElement = `<div><audio controls src="${audioUrl}"></audio></div>`;
+                        $('#audioContainer').append(audioElement);
+                    });
+                },
+                error: function () {
+                    alert("An error occurred while processing your request.");
+                }
+            });
         });
-    </script>
-</div>
+
+
+        $('#combineButton').click(function () {
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Page("Index", "Combine")',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                contentType: 'application/json; charset=utf-8',
+                success: function (result) {
+                    if (result.combinedFileUrl) {
+                        const combinedAudioElement = `<div><audio controls src="${result.combinedFileUrl}"></audio></div>`;
+                        $('#audioContainer').append(combinedAudioElement);
+                    }
+                },
+                error: function () {
+                    alert("An error occurred while processing your request.");
+                }
+            });
+        });
+
+    });
+</script>
+
+
+
+
