@@ -20,90 +20,162 @@
         hr.solid {
             border-top: 3px solid #bbb;
         }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none; /* 사용자가 크기를 조절하지 못하게 함 */
+            overflow: hidden; /* 스크롤 바 숨김 */
+        }
         
     </style>
+}
+
+@section Scripts {
+    <script>
+        // 텍스트 영역 크기 자동 조절 스크립트
+        const textarea = document.getElementById('autoResize');
+
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = 20+(this.scrollHeight) + 'px';
+        });
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            let inputCount = 1;
+
+            document.getElementById('addButton').addEventListener('click', function () {
+                const inputContainer = document.getElementById('inputContainer');
+                const newInputGroup = document.createElement('div');
+                newInputGroup.className = 'input-group';
+
+                const textarea = document.createElement('textarea');
+                textarea.id = 'autoResize';
+                textarea.name = `UserInputs[${inputCount}].Text`;
+                textarea.className = 'text-input';
+                textarea.placeholder = 'Enter text here';
+
+                const genderInputs = document.createElement('div');
+                genderInputs.className = 'gender-inputs';
+
+                const maleLabel = document.createElement('label');
+                const maleRadio = document.createElement('input');
+                maleRadio.type = 'radio';
+                maleRadio.name = `UserInputs[${inputCount}].Gender`;
+                maleRadio.value = 'Male';
+                maleRadio.checked = true;
+                maleLabel.appendChild(maleRadio);
+                maleLabel.appendChild(document.createTextNode(' 남성'));
+
+                const femaleLabel = document.createElement('label');
+                const femaleRadio = document.createElement('input');
+                femaleRadio.type = 'radio';
+                femaleRadio.name = `UserInputs[${inputCount}].Gender`;
+                femaleRadio.value = 'Female';
+                femaleLabel.appendChild(femaleRadio);
+                femaleLabel.appendChild(document.createTextNode(' 여성'));
+
+                genderInputs.appendChild(maleLabel);
+                genderInputs.appendChild(femaleLabel);
+
+                newInputGroup.appendChild(textarea);
+                newInputGroup.appendChild(genderInputs);
+                inputContainer.appendChild(newInputGroup);
+
+                inputCount++;
+            });
+
+            document.getElementById('ttsForm').addEventListener('submit', function (event) {
+
+                var button = document.getElementById("convertButton");
+                button.textContent = "Loading...";
+                button.disabled = true;
+                
+                event.preventDefault();
+
+                const formData = new FormData(this);
+
+                fetch('@Url.Page("Index", "Transform")', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(audioUrls => {
+                        const audioContainer = document.getElementById('audioContainer');
+                        audioContainer.innerHTML = '';
+                        audioUrls.forEach(function (audioUrl) {
+                            const audioElement = document.createElement('div');
+                            audioElement.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+                            audioContainer.appendChild(audioElement);
+                        });
+                    })
+                    .catch(() => {
+                        alert("An error occurred while processing your request.");
+                    })
+                    .finally(() => {
+
+                        button.textContent = "Convert to Speech";
+                        button.disabled = false;
+
+                    });
+            });
+
+
+            document.getElementById('combineButton').addEventListener('click', function () {
+                const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const audioElements = document.querySelectorAll('#audioContainer audio');
+                const filePaths = Array.from(audioElements).map(audio => audio.src);
+
+                fetch('@Url.Page("Index", "Combine")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': csrfToken,
+                        'Content-Type': 'application/json; charset=utf-8'
+                    },
+                    body: JSON.stringify(filePaths)
+                })
+                .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const combinedAudioUrl = data.combinedFileUrl;
+
+                            const combinedAudioElement = `<div><audio controls src="${combinedAudioUrl}"></audio></div>`;
+                            document.getElementById('audioContainer').innerHTML += combinedAudioElement;
+                        } else {
+                            alert("Failed to combine audio files.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error combining audio files:', error);
+                    });
+            });
+        });
+    </script>
 }
 
 <form id="ttsForm" method="post">
     <div id="inputContainer">
         <div class="input-group">
-            <input type="text" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here" />
+            <textarea id="autoResize" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here"></textarea>
             <div class="gender-inputs">
-                <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> Male</label>
-                <label><input type="radio" name="UserInputs[0].Gender" value="Female"> Female</label>
+                <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> 남성</label>
+                <label><input type="radio" name="UserInputs[0].Gender" value="Female"> 여성</label>
             </div>
         </div>
     </div>
-    <button type="button" id="addButton">+ Add Input</button>
-    <button type="submit">Convert to Speech</button>
-
-
+    <button id="addButton" type="button">+ Add Input</button>
+    <hr class="solid" />
+    <button id="convertButton" type="submit">Convert to Speech</button>
 </form>
 
 <div id="audioContainer"></div>
-<button type="button" id="combineButton">Combine Audio</button>
+@* <button type="button" id="combineButton">Combine Audio</button> *@
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script type="text/javascript">
-    $(document).ready(function () {
-        let inputCount = 1;
-
-        $('#addButton').click(function () {
-            $('#inputContainer').append(`
-                    <div class="input-group">
-                        <input type="text" name="UserInputs[${inputCount}].Text" class="text-input" placeholder="Enter text here" />
-                        <div class="gender-inputs">
-                            <label><input type="radio" name="UserInputs[${inputCount}].Gender" value="Male" checked> Male</label>
-                            <label><input type="radio" name="UserInputs[${inputCount}].Gender" value="Female"> Female</label>
-                        </div>
-                    </div>
-                `);
-            inputCount++;
-        });
-
-        $('#ttsForm').on('submit', function (event) {
-            event.preventDefault();
-            
-            $.ajax({
-                url: '@Url.Page("Index")',
-                type: 'POST',
-                data: $(this).serialize(),
-                success: function (audioUrls) {
-                    $('#audioContainer').empty();
-                    audioUrls.forEach(function (audioUrl) {
-                        const audioElement = `<div><audio controls src="${audioUrl}"></audio></div>`;
-                        $('#audioContainer').append(audioElement);
-                    });
-                },
-                error: function () {
-                    alert("An error occurred while processing your request.");
-                }
-            });
-        });
-
-
-        $('#combineButton').click(function () {
-            $.ajax({
-                type: 'POST',
-                url: '@Url.Page("Index", "Combine")',
-                headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                },
-                contentType: 'application/json; charset=utf-8',
-                success: function (result) {
-                    if (result.combinedFileUrl) {
-                        const combinedAudioElement = `<div><audio controls src="${result.combinedFileUrl}"></audio></div>`;
-                        $('#audioContainer').append(combinedAudioElement);
-                    }
-                },
-                error: function () {
-                    alert("An error occurred while processing your request.");
-                }
-            });
-        });
-
-    });
-</script>
 
 
 

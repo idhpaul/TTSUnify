@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\css\Index.css" />
+    <None Include="wwwroot\js\Index.js" />
   </ItemGroup>
 
   <ItemGroup>
