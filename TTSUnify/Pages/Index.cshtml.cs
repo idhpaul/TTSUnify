@@ -10,6 +10,9 @@ using Google.Api;
 using static Google.Rpc.Context.AttributeContext.Types;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using OpenAI.Audio;
+using System.ClientModel;
+using OpenAI;
 
 public class UserInputModel
 {
@@ -29,6 +32,7 @@ namespace TTSUnify.Pages
 	public class IndexModel : PageModel
 	{
 		private readonly ILogger<IndexModel> _logger;
+        private readonly IConfiguration _config;
 
         [BindProperty]
         public TTSService SelectedTtsService { get; set; } = TTSService.OpenAI;
@@ -40,10 +44,11 @@ namespace TTSUnify.Pages
 		[BindProperty]
 		public List<UserInputModel> UserInputs { get; set; } = default!;
 
-		public IndexModel(ILogger<IndexModel> logger)
+		public IndexModel(ILogger<IndexModel> logger, IConfiguration config)
 		{
             Debug.WriteLine("IndexModel");
 			_logger = logger;
+            _config = config;
 
             TtsServicesList = new SelectList(
                 Enum.GetValues(typeof(TTSService))
@@ -91,8 +96,8 @@ namespace TTSUnify.Pages
 			// Google 서비스 처리 로직
 			var audioUrls = new List<string>();
 			var audioDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "audio");
-			var timeFolder = DateTime.Now.ToString("MMdd_HH-mm-ss");
-			var timeFolderDirectory = Path.Combine(audioDirectory, timeFolder);
+			var timeFolder = DateTime.Now.ToString("MMdd_HH-mm-ss") + "_google";
+            var timeFolderDirectory = Path.Combine(audioDirectory, timeFolder);
 			var client = TextToSpeechClient.Create();
 			var audioFileIndex = 1;
 
@@ -106,8 +111,6 @@ namespace TTSUnify.Pages
 			{
 				Directory.CreateDirectory(timeFolderDirectory);
 			}
-
-
 
 			foreach (var inputModel in UserInputs)
 			{
@@ -154,9 +157,44 @@ namespace TTSUnify.Pages
 		{
 			// OpenAI 서비스 처리 로직
 			Debug.WriteLine("OpenAI 서비스 처리 로직");
-			await Task.Delay(100);
-			return Page();
-		}
+            var audioUrls = new List<string>();
+            var audioDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "audio");
+            var timeFolder = DateTime.Now.ToString("MMdd_HH-mm-ss") + "_openai";
+            var timeFolderDirectory = Path.Combine(audioDirectory, timeFolder);
+			OpenAIClient client = new OpenAIClient(new ApiKeyCredential(_config["TTS:OpenAI_demotts_key"]));
+            AudioClient ttsClient = client.GetAudioClient("tts-1");
+            var audioFileIndex = 1;
+
+            // UserInputs가 null이거나 비어있으면 빠져나옴
+            if (UserInputs == null || UserInputs.Count == 0 || UserInputs[0].Text == null)
+            {
+                return Page(); // 페이지를 다시 렌더링하거나 다른 응답을 반환
+            }
+
+            if (!Directory.Exists(timeFolderDirectory))
+            {
+                Directory.CreateDirectory(timeFolderDirectory);
+            }
+
+            foreach (var inputModel in UserInputs)
+            {
+				var inputText = inputModel.Text;
+
+				var voiceType = inputModel.Gender == "Female" ? GeneratedSpeechVoice.Nova : GeneratedSpeechVoice.Alloy;
+
+                BinaryData speech = await ttsClient.GenerateSpeechAsync(inputText, voiceType);
+
+                var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
+                var filePath = Path.Combine(timeFolderDirectory, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, speech.ToArray());
+
+                audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+            }
+
+            audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder));
+
+            return new JsonResult(audioUrls);
+        }
 
 		public IActionResult OnPostCombine([FromBody] List<string> filePaths)
 		{
