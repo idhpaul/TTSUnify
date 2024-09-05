@@ -158,7 +158,22 @@
     </script>
 }
 
+@* <div class="dropdown">
+    <label for="serviceSelect">클라우드 서비스:</label>
+    <select id="serviceSelect", >
+        <option value="google">Google</option>
+        <option value="azure">Azure</option>
+        <option value="openai" selected>OpenAI</option>
+    </select>
+</div> *@
+
 <form id="ttsForm" method="post">
+    <label for="ttsService">Select TTS Service:</label>
+    <select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
+        @* <option value="">-- Select a service --</option> *@
+    </select>
+
+    <hr class="solid" />
     <div id="inputContainer">
         <div class="input-group">
             <textarea id="autoResize" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here"></textarea>
