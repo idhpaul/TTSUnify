@@ -13,6 +13,7 @@ using System.ComponentModel.DataAnnotations;
 using OpenAI.Audio;
 using System.ClientModel;
 using OpenAI;
+using TTSUnify.Core.Enums;
 
 public class UserInputModel
 {
@@ -37,6 +38,10 @@ namespace TTSUnify.Pages
         [BindProperty]
         public TTSService SelectedTtsService { get; set; } = TTSService.OpenAI;
         public SelectList TtsServicesList { get; set; }
+
+        [BindProperty]
+        public string SelectedGender { get; set; }
+        public string[] Options { get; set; }
 
         // 서비스 타입에 따른 함수 매핑을 위한 딕셔너리 정의
         private readonly Dictionary<TTSService, Func<Task<IActionResult>>> serviceActions;
@@ -75,6 +80,18 @@ namespace TTSUnify.Pages
         {
             
         }
+        public void OnPostSelectGender()
+        {
+            if (SelectedGender == "male")
+            {
+                Options = new[] { OPENAIVOICE.m_Alloy.ToString(), OPENAIVOICE.m_Onyx.ToString() };
+            }
+            else // female
+            {
+                Options = new[] { OPENAIVOICE.f_Nova.ToString(), OPENAIVOICE.f_Shimmer.ToString() };
+            }
+        }
+
         public async Task<IActionResult> OnPostTransformAsync()
         {
 
@@ -157,6 +174,7 @@ namespace TTSUnify.Pages
 		{
 			// OpenAI 서비스 처리 로직
 			Debug.WriteLine("OpenAI 서비스 처리 로직");
+
             var audioUrls = new List<string>();
             var audioDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "audio");
             var timeFolder = DateTime.Now.ToString("MMdd_HH-mm-ss") + "_openai";
@@ -180,7 +198,7 @@ namespace TTSUnify.Pages
             {
 				var inputText = inputModel.Text;
 
-				var voiceType = inputModel.Gender == "Female" ? GeneratedSpeechVoice.Nova : GeneratedSpeechVoice.Alloy;
+				var voiceType = inputModel.Gender == "Female" ? GeneratedSpeechVoice.Nova: GeneratedSpeechVoice.Alloy;
 
                 BinaryData speech = await ttsClient.GenerateSpeechAsync(inputText, voiceType);
 

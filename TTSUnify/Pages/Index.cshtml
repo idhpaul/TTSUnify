@@ -46,6 +46,7 @@
         });
 
 
+
         document.addEventListener('DOMContentLoaded', function () {
             let inputCount = 1;
 
@@ -154,6 +155,8 @@
                         console.error('Error combining audio files:', error);
                     });
             });
+
+
         });
     </script>
 }
@@ -181,7 +184,20 @@
                 <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> 남성</label>
                 <label><input type="radio" name="UserInputs[0].Gender" value="Female"> 여성</label>
             </div>
+            <div id="options">
+                @if (Model.Options != null)
+                {
+                    foreach (var option in Model.Options)
+                    {
+                        <button type="button" onclick="alert('Selected: @option')">@option</button>
+                    }
+                }
+            </div>
         </div>
+    </div>
+    <div id="optionsGrid" class="grid" style="margin-top:20px;">
+        <h3>Options</h3>
+        
     </div>
     <button id="addButton" type="button">+ Add Input</button>
     <hr class="solid" />
