@@ -14,6 +14,8 @@ using OpenAI.Audio;
 using System.ClientModel;
 using OpenAI;
 using TTSUnify.Core.Enums;
+using Microsoft.CognitiveServices.Speech;
+using static System.Net.Mime.MediaTypeNames;
 
 public class UserInputModel
 {
@@ -166,9 +168,49 @@ namespace TTSUnify.Pages
 		{
 			// Azure 서비스 처리 로직
 			Debug.WriteLine("Azure 서비스 처리 로직");
-			await Task.Delay(100);
-			return Page();
-		}
+
+            var audioUrls = new List<string>();
+            var audioDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "audio");
+            var timeFolder = DateTime.Now.ToString("MMdd_HH-mm-ss") + "_azure";
+            var timeFolderDirectory = Path.Combine(audioDirectory, timeFolder);
+            var speechConfig = SpeechConfig.FromSubscription(_config["TTS:Azure_speech_key"], "koreacentral");
+            var audioFileIndex = 1;
+
+            // UserInputs가 null이거나 비어있으면 빠져나옴
+            if (UserInputs == null || UserInputs.Count == 0 || UserInputs[0].Text == null)
+            {
+                return Page(); // 페이지를 다시 렌더링하거나 다른 응답을 반환
+            }
+
+            if (!Directory.Exists(timeFolderDirectory))
+            {
+                Directory.CreateDirectory(timeFolderDirectory);
+            }
+
+
+            foreach (var inputModel in UserInputs)
+            {
+                var inputText = inputModel.Text;
+
+                speechConfig.SpeechSynthesisVoiceName = inputModel.Gender == "Female" ? "ko-KR-JiMinNeural" : "ko-KR-GookMinNeural";
+                speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
+
+                using var speechSynthesizer = new SpeechSynthesizer(speechConfig,null);
+
+                var speechSynthesisResult = await speechSynthesizer.SpeakTextAsync(inputText);
+
+
+                var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
+                var filePath = Path.Combine(timeFolderDirectory, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, speechSynthesisResult.AudioData);
+
+                audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+            }
+
+            audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder,16000));
+
+            return new JsonResult(audioUrls);
+        }
 
 		private async Task<IActionResult> HandleOpenAIService()
 		{
@@ -247,10 +289,10 @@ namespace TTSUnify.Pages
 			return new JsonResult(new { combinedFileUrl = "/audio/combined.mp3" });
 		}
 
-		private string AudioCombine(string timeFolderDirectory, string timeFolder)
+		private string AudioCombine(string timeFolderDirectory, string timeFolder, int samplerate = 24000)
 		{
 			// 타겟 샘플레이트 및 채널 설정
-			int targetSampleRate = 24000;
+			int targetSampleRate = samplerate;
 			int targetChannels = 1;
 			int silenceDurationInMs = 800; // 0.8초
 			var combinedFileName = "combined.mp3";
