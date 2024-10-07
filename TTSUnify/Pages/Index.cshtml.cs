@@ -39,7 +39,7 @@ namespace TTSUnify.Pages
         private readonly IConfiguration _config;
 
         [BindProperty]
-        public TTSService SelectedTtsService { get; set; } = TTSService.Google;
+        public TTSService SelectedTtsService { get; set; }
         public SelectList TtsServicesList { get; set; }
 
         [BindProperty]
@@ -243,24 +243,24 @@ namespace TTSUnify.Pages
             {
                 var inputText = inputModel.Text;
 
-                speechConfig.SpeechSynthesisVoiceName = inputModel.Gender == "Female" ? "ko-KR-JiMinNeural" : "ko-KR-GookMinNeural";
+                speechConfig.SpeechSynthesisVoiceName = inputModel.Gender == "Female" ? "ko-KR-YuJinNeural" : "ko-KR-HyunsuNeural";
                 speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
 
                 using var speechSynthesizer = new SpeechSynthesizer(speechConfig,null);
 
                 var speechSynthesisResult = await speechSynthesizer.SpeakTextAsync(inputText);
-                if (speechSynthesisResult.Reason == ResultReason.Canceled)
-                {
-                    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
-                    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
+                //if (speechSynthesisResult.Reason is ResultReason.Canceled)
+                //{
+                //    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
+                //    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
 
-                    if (cancellation.Reason == CancellationReason.Error)
-                    {
-                        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
-                        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
-                        Console.WriteLine($"CANCELED: Did you update the subscription info?");
-                    }
-                }
+                //    if (cancellation.Reason == CancellationReason.Error)
+                //    {
+                //        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                //        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
+                //        Console.WriteLine($"CANCELED: Did you update the subscription info?");
+                //    }
+                //}
 
                 var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
                 var filePath = Path.Combine(timeFolderDirectory, fileName);

@@ -193,15 +193,14 @@
     </select>
 </div> *@
 
-<label for="ttsService">Select TTS Service:</label>
-<select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
-    @* <option value="">-- Select a service --</option> *@
-</select>
-
 <div class="workspace-container">
     <!-- 작업 공간 -->
     <div class="workspace">
         <form id="ttsForm" method="post">
+            <label for="ttsService">Select TTS Service:</label>
+            <select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
+                @* <option value="">-- Select a service --</option> *@
+            </select>
             <hr class="solid" />
             <div id="inputContainer">
                 <div class="input-group">
