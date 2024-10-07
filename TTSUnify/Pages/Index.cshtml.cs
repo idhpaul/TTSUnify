@@ -16,6 +16,7 @@ using OpenAI;
 using TTSUnify.Core.Enums;
 using Microsoft.CognitiveServices.Speech;
 using static System.Net.Mime.MediaTypeNames;
+using TTSUnify.Core.Attributes;
 
 public class UserInputModel
 {
@@ -38,7 +39,7 @@ namespace TTSUnify.Pages
         private readonly IConfiguration _config;
 
         [BindProperty]
-        public TTSService SelectedTtsService { get; set; } = TTSService.OpenAI;
+        public TTSService SelectedTtsService { get; set; } = TTSService.Google;
         public SelectList TtsServicesList { get; set; }
 
         [BindProperty]
@@ -48,7 +49,9 @@ namespace TTSUnify.Pages
         // 서비스 타입에 따른 함수 매핑을 위한 딕셔너리 정의
         private readonly Dictionary<TTSService, Func<Task<IActionResult>>> serviceActions;
 
-		[BindProperty]
+        public Dictionary<string, Dictionary<string, List<string>>> VoiceSamples { get; set; }
+
+        [BindProperty]
 		public List<UserInputModel> UserInputs { get; set; } = default!;
 
 		public IndexModel(ILogger<IndexModel> logger, IConfiguration config)
@@ -78,9 +81,57 @@ namespace TTSUnify.Pages
 			};
 
 		}
+
+        // Enum 필드에 지정된 특정 Attribute를 가져오는 제너릭 메서드
+        public static T GetEnumAttribute<T>(Enum enumValue) where T : Attribute
+        {
+            return enumValue.GetType()
+                            .GetField(enumValue.ToString())
+                            .GetCustomAttributes(typeof(T), false)
+                            .FirstOrDefault() as T;
+        }
+
+
+        // 각 enum에서 Description과 Gender를 이용해 음성 리스트를 가져오는 메서드
+        private Dictionary<string, List<string>> GetVoiceSamplesFromEnum(System.Type enumType)
+        {
+            var samples = new Dictionary<string, List<string>>
+            {
+                { "Male", new List<string>() },
+                { "Female", new List<string>() }
+            };
+
+            foreach (Enum value in System.Enum.GetValues(enumType))
+            {
+                var gender = GetEnumAttribute<GenderAttribute>(value)?.Gender;
+                var description = GetEnumAttribute<Core.Attributes.DescriptionAttribute>(value)?.Description;
+
+                // Gender에 따라 분류하여 리스트에 추가
+                if (gender == GENDERVOICE.Male)
+                {
+                    samples["Male"].Add(description.ToString());
+                }
+                else
+                {
+                    samples["Female"].Add(description.ToString());
+                }
+            }
+
+            return samples;
+        }
+
         public void OnGet()
         {
-            
+            VoiceSamples = new Dictionary<string, Dictionary<string, List<string>>>();
+
+            // OpenAI 음성 목록 생성
+            VoiceSamples.Add("OpenAI", GetVoiceSamplesFromEnum(typeof(OPENAIVOICE)));
+
+            // Google 음성 목록 생성
+            VoiceSamples.Add("Google", GetVoiceSamplesFromEnum(typeof(GOOGLEVOICE)));
+
+            // Azure 음성 목록 생성
+            VoiceSamples.Add("Azure", GetVoiceSamplesFromEnum(typeof(AZUREVOICE)));
         }
         public void OnPostSelectGender()
         {
@@ -141,7 +192,7 @@ namespace TTSUnify.Pages
 				var voice = new VoiceSelectionParams
 				{
 					LanguageCode = "ko-KR",
-					Name = inputModel.Gender == "Female" ? "ko-KR-Standard-B" : "ko-KR-Standard-C",
+					Name = inputModel.Gender == "Female" ? "ko-KR-Standard-A" : "ko-KR-Standard-D",
 					SsmlGender = inputModel.Gender == "Female" ? SsmlVoiceGender.Female : SsmlVoiceGender.Male
 				};
 
@@ -198,13 +249,25 @@ namespace TTSUnify.Pages
                 using var speechSynthesizer = new SpeechSynthesizer(speechConfig,null);
 
                 var speechSynthesisResult = await speechSynthesizer.SpeakTextAsync(inputText);
+                if (speechSynthesisResult.Reason == ResultReason.Canceled)
+                {
+                    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
+                    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
 
+                    if (cancellation.Reason == CancellationReason.Error)
+                    {
+                        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
+                        Console.WriteLine($"CANCELED: Did you update the subscription info?");
+                    }
+                }
 
                 var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
                 var filePath = Path.Combine(timeFolderDirectory, fileName);
                 await System.IO.File.WriteAllBytesAsync(filePath, speechSynthesisResult.AudioData);
 
                 audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+
             }
 
             audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder,16000));

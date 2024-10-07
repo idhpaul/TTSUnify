@@ -27,33 +27,33 @@ namespace TTSUnify.Core.Enums
 
     public enum GOOGLEVOICE
     {
-        [Gender(GENDERVOICE.Female), Description("여1/ko-KR-Standard-A")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-Standard-A")]
         f_A_Standard,
-        [Gender(GENDERVOICE.Female), Description("여2/ko-KR-Standard-B")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-Standard-B")]
         f_B_Standard,
-        [Gender(GENDERVOICE.Male), Description("남1/ko-KR-Standard-C")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-Standard-C")]
         m_C_Standard,
-        [Gender(GENDERVOICE.Male), Description("남2/ko-KR-Standard-D")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-Standard-D")]
         m_D_Standard,
     }
 
     public enum AZUREVOICE
     {
-        [Gender(GENDERVOICE.Male), Description("인준/ko-KR-InJoonNeural")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-InJoonNeural")]
         m_InJoon,
-        [Gender(GENDERVOICE.Male), Description("봉진/ko-KR-BongJinNeural")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-BongJinNeural")]
         m_BongJin,
-        [Gender(GENDERVOICE.Male), Description("국민/ko-KR-GookMinNeural")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-GookMinNeural")]
         m_GookMin,
-        [Gender(GENDERVOICE.Male), Description("현수/ko-KR-HyunsuNeural")]
+        [Gender(GENDERVOICE.Male), Description("ko-KR-HyunsuNeural")]
         m_Hyunsu,
-        [Gender(GENDERVOICE.Female), Description("선히/ko-KR-SunHiNeural")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-SunHiNeural")]
         f_SunHi,
-        [Gender(GENDERVOICE.Female), Description("지민/ko-KR-JiMinNeural")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-JiMinNeural")]
         f_JiMin,
-        [Gender(GENDERVOICE.Female), Description("순복/ko-KR-SoonBokNeural")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-SoonBokNeural")]
         f_SoonBok,
-        [Gender(GENDERVOICE.Female), Description("유진/ko-KR-YuJinNeural")]
+        [Gender(GENDERVOICE.Female), Description("ko-KR-YuJinNeural")]
         f_YuJin,
     }
 }

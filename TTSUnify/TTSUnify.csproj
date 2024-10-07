@@ -12,12 +12,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Enums.NET" Version="5.0.0" />
     <PackageReference Include="Google.Apis" Version="1.68.0" />
     <PackageReference Include="Google.Cloud.TextToSpeech.V1" Version="3.6.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.40.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Lame" Version="2.1.0" />
     <PackageReference Include="OpenAI" Version="2.0.0-beta.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Util\" />
+    <Folder Include="wwwroot\asset\sample\Google\" />
+    <Folder Include="wwwroot\asset\sample\Azure\" />
+    <Folder Include="wwwroot\asset\sample\OpenAI\" />
   </ItemGroup>
 
 </Project>

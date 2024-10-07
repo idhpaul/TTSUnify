@@ -7,6 +7,29 @@
 @section Styles {
     @* <link rel="stylesheet" href="~/css/Index.css" /> *@
     <style>
+        /* 기본 레이아웃 설정 */
+        .workspace-container {
+            display: flex;
+        }
+
+        /* 8:2 비율 설정 */
+        .workspace {
+            flex: 7;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .audio-list {
+            flex: 3;
+            background-color: #e0e0e0;
+            padding: 20px;
+            overflow-y: scroll;
+        }
+
+        .audio-item {
+            margin-bottom: 10px;
+        }
+
         .input-group {
             margin-bottom: 10px;
         }
@@ -170,41 +193,80 @@
     </select>
 </div> *@
 
-<form id="ttsForm" method="post">
-    <label for="ttsService">Select TTS Service:</label>
-    <select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
-        @* <option value="">-- Select a service --</option> *@
-    </select>
+<label for="ttsService">Select TTS Service:</label>
+<select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
+    @* <option value="">-- Select a service --</option> *@
+</select>
 
-    <hr class="solid" />
-    <div id="inputContainer">
-        <div class="input-group">
-            <textarea id="autoResize" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here"></textarea>
-            <div class="gender-inputs">
-                <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> 남성</label>
-                <label><input type="radio" name="UserInputs[0].Gender" value="Female"> 여성</label>
+<div class="workspace-container">
+    <!-- 작업 공간 -->
+    <div class="workspace">
+        <form id="ttsForm" method="post">
+            <hr class="solid" />
+            <div id="inputContainer">
+                <div class="input-group">
+                    <textarea id="autoResize" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here"></textarea>
+                    <div class="gender-inputs">
+                        <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> 남성</label>
+                        <label><input type="radio" name="UserInputs[0].Gender" value="Female"> 여성</label>
+                    </div>
+                    <div id="options">
+                        @if (Model.Options != null)
+                        {
+                            foreach (var option in Model.Options)
+                            {
+                                <button type="button" onclick="alert('Selected: @option')">@option</button>
+                            }
+                        }
+                    </div>
+                </div>
             </div>
-            <div id="options">
-                @if (Model.Options != null)
-                {
-                    foreach (var option in Model.Options)
+            <div id="optionsGrid" class="grid" style="margin-top:20px;">
+                <h3>Options</h3>
+
+            </div>
+            <button id="addButton" type="button">+ Add Input</button>
+            <hr class="solid" />
+            <button id="convertButton" type="submit">Convert to Speech</button>
+        </form>
+
+        <div id="audioContainer"></div>
+    </div>
+
+    <!-- 오디오 파일 리스트 -->
+    <div class="audio-list">
+        @foreach (var service in Model.VoiceSamples)
+        {
+            <h3>[@service.Key] Samples</h3> <!-- 서비스 이름 (OpenAI, Google, Azure) -->
+            @foreach (var gender in service.Value)
+            {
+                <h3>@gender.Key</h3> <!-- 성별 (Male, Female) -->
+                <ul>
+                    @foreach (var sample in gender.Value)
                     {
-                        <button type="button" onclick="alert('Selected: @option')">@option</button>
+                        <li>
+                            @sample
+                            <audio controls>
+                                <source src="/asset/sample/@service.Key/@(sample + ".mp3")" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </li>
                     }
-                }
-            </div>
-        </div>
+                </ul>
+            }
+        }
+        @* <h2>오디오 파일 목록</h2>
+        <ul>
+            @foreach (var audioFile in Model.AudioFiles)
+            {
+                <li class="audio-item">
+                    <button onclick="playAudio('@audioFile.Url')">▶️ @audioFile.Name</button>
+                </li>
+            }
+        </ul> *@
     </div>
-    <div id="optionsGrid" class="grid" style="margin-top:20px;">
-        <h3>Options</h3>
-        
-    </div>
-    <button id="addButton" type="button">+ Add Input</button>
-    <hr class="solid" />
-    <button id="convertButton" type="submit">Convert to Speech</button>
-</form>
+</div>
 
-<div id="audioContainer"></div>
 @* <button type="button" id="combineButton">Combine Audio</button> *@
 
 
