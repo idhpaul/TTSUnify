@@ -59,9 +59,12 @@ namespace TTSUnify.Pages
 
 		public IndexModel(ILogger<IndexModel> logger, IConfiguration config)
 		{
-            Debug.WriteLine("IndexModel");
+            Console.WriteLine("IndexModel");
 			_logger = logger;
             _config = config;
+            Console.WriteLine(_config["TTS:Azure_speech_key"]);
+            Console.WriteLine(_config["TTS:OpenAI_demotts_key"]);
+
 
             TtsServicesList = new SelectList(
                 System.Enum.GetValues(typeof(TTSService))
