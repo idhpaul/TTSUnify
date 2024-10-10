@@ -17,11 +17,13 @@ using TTSUnify.Core.Enums;
 using Microsoft.CognitiveServices.Speech;
 using static System.Net.Mime.MediaTypeNames;
 using TTSUnify.Core.Attributes;
+using Google.Protobuf.WellKnownTypes;
 
 public class UserInputModel
 {
 	public string Text { get; set; } = default!;
 	public string Gender { get; set; } = default!;
+	public string Voice { get; set; } = default!;
 }
 
 public enum TTSService
@@ -44,10 +46,11 @@ namespace TTSUnify.Pages
 
         [BindProperty]
         public string SelectedGender { get; set; }
-        public string[] Options { get; set; }
 
         // 서비스 타입에 따른 함수 매핑을 위한 딕셔너리 정의
         private readonly Dictionary<TTSService, Func<Task<IActionResult>>> serviceActions;
+
+        public Dictionary<TTSService, Dictionary<string, List<string>>> VoiceSelecter { get; set; }
 
         public Dictionary<string, Dictionary<string, List<string>>> VoiceSamples { get; set; }
 
@@ -61,7 +64,7 @@ namespace TTSUnify.Pages
             _config = config;
 
             TtsServicesList = new SelectList(
-                Enum.GetValues(typeof(TTSService))
+                System.Enum.GetValues(typeof(TTSService))
                     .Cast<TTSService>()
                     .Select(e => new SelectListItem
                     {
@@ -83,7 +86,7 @@ namespace TTSUnify.Pages
 		}
 
         // Enum 필드에 지정된 특정 Attribute를 가져오는 제너릭 메서드
-        public static T GetEnumAttribute<T>(Enum enumValue) where T : Attribute
+        public static T GetEnumAttribute<T>(System.Enum enumValue) where T : Attribute
         {
             return enumValue.GetType()
                             .GetField(enumValue.ToString())
@@ -101,7 +104,7 @@ namespace TTSUnify.Pages
                 { "Female", new List<string>() }
             };
 
-            foreach (Enum value in System.Enum.GetValues(enumType))
+            foreach (System.Enum value in System.Enum.GetValues(enumType))
             {
                 var gender = GetEnumAttribute<GenderAttribute>(value)?.Gender;
                 var description = GetEnumAttribute<Core.Attributes.DescriptionAttribute>(value)?.Description;
@@ -124,25 +127,29 @@ namespace TTSUnify.Pages
         {
             VoiceSamples = new Dictionary<string, Dictionary<string, List<string>>>();
 
-            // OpenAI 음성 목록 생성
-            VoiceSamples.Add("OpenAI", GetVoiceSamplesFromEnum(typeof(OPENAIVOICE)));
+            // OpenAI, Google, Azure 샘플 음성 목록 생성
+            VoiceSamples.Add(TTSService.OpenAI.ToString(), GetVoiceSamplesFromEnum(typeof(OPENAIVOICE)));
+            VoiceSamples.Add(TTSService.Google.ToString(), GetVoiceSamplesFromEnum(typeof(GOOGLEVOICE)));
+            VoiceSamples.Add(TTSService.Azure.ToString(), GetVoiceSamplesFromEnum(typeof(AZUREVOICE)));
 
-            // Google 음성 목록 생성
-            VoiceSamples.Add("Google", GetVoiceSamplesFromEnum(typeof(GOOGLEVOICE)));
+            VoiceSelecter = new Dictionary<TTSService, Dictionary<string, List<string>>>();
 
-            // Azure 음성 목록 생성
-            VoiceSamples.Add("Azure", GetVoiceSamplesFromEnum(typeof(AZUREVOICE)));
-        }
-        public void OnPostSelectGender()
-        {
-            if (SelectedGender == "male")
-            {
-                Options = new[] { OPENAIVOICE.m_Alloy.ToString(), OPENAIVOICE.m_Onyx.ToString() };
-            }
-            else // female
-            {
-                Options = new[] { OPENAIVOICE.f_Nova.ToString(), OPENAIVOICE.f_Shimmer.ToString() };
-            }
+            // 내부 Dictionary 생성 및 데이터 추가
+            Dictionary<string, List<string>> openAiVoice = new Dictionary<string, List<string>>();
+            openAiVoice.Add(GENDERVOICE.Male.ToString(), new List<string> { OPENAIVOICE.m_Alloy.ToString(), OPENAIVOICE.m_Echo.ToString(), OPENAIVOICE.m_Fable.ToString(), OPENAIVOICE.m_Onyx.ToString() });
+            openAiVoice.Add(GENDERVOICE.Female.ToString(), new List<string> { OPENAIVOICE.f_Nova.ToString(), OPENAIVOICE.f_Shimmer.ToString() });
+
+            Dictionary<string, List<string>> googleVoice = new Dictionary<string, List<string>>();
+            googleVoice.Add(GENDERVOICE.Male.ToString(), new List<string> { GOOGLEVOICE.m_C_Standard.ToString(), GOOGLEVOICE.m_D_Standard.ToString() });
+            googleVoice.Add(GENDERVOICE.Female.ToString(), new List<string> { GOOGLEVOICE.f_A_Standard.ToString(), GOOGLEVOICE.f_B_Standard.ToString() });
+
+            Dictionary<string, List<string>> azureVoice = new Dictionary<string, List<string>>();
+            azureVoice.Add(GENDERVOICE.Male.ToString(), new List<string> { AZUREVOICE.m_InJoon.ToString(), AZUREVOICE.m_BongJin.ToString(), AZUREVOICE.m_GookMin.ToString(), AZUREVOICE.m_Hyunsu.ToString() });
+            azureVoice.Add(GENDERVOICE.Female.ToString(), new List<string> { AZUREVOICE.f_SunHi.ToString(), AZUREVOICE.f_JiMin.ToString(), AZUREVOICE.f_SoonBok.ToString(), AZUREVOICE.f_YuJin.ToString() });
+
+            VoiceSelecter.Add(TTSService.OpenAI, openAiVoice);
+            VoiceSelecter.Add(TTSService.Google, googleVoice);
+            VoiceSelecter.Add(TTSService.Azure, azureVoice);
         }
 
         public async Task<IActionResult> OnPostTransformAsync()
@@ -177,6 +184,8 @@ namespace TTSUnify.Pages
 				return Page(); // 페이지를 다시 렌더링하거나 다른 응답을 반환
 			}
 
+            
+
 			if (!Directory.Exists(timeFolderDirectory))
 			{
 				Directory.CreateDirectory(timeFolderDirectory);
@@ -184,35 +193,47 @@ namespace TTSUnify.Pages
 
 			foreach (var inputModel in UserInputs)
 			{
-				var input = new SynthesisInput
-				{
-					Text = inputModel.Text
-				};
+                if (System.Enum.TryParse(inputModel.Voice, out GOOGLEVOICE voiceEnum))
+                {
 
-				var voice = new VoiceSelectionParams
-				{
-					LanguageCode = "ko-KR",
-					Name = inputModel.Gender == "Female" ? "ko-KR-Standard-A" : "ko-KR-Standard-D",
-					SsmlGender = inputModel.Gender == "Female" ? SsmlVoiceGender.Female : SsmlVoiceGender.Male
-				};
+                    var description = GetEnumAttribute<Core.Attributes.DescriptionAttribute>(voiceEnum)?.Description;
 
-				var audioConfig = new AudioConfig
-				{
-					AudioEncoding = AudioEncoding.Mp3
-				};
+                    var input = new SynthesisInput
+				    {
+					    Text = inputModel.Text
+				    };
 
-				var response = await client.SynthesizeSpeechAsync(input, voice, audioConfig);
+				    var voice = new VoiceSelectionParams
+				    {
+					    LanguageCode = "ko-KR",
+					    Name = description,
+					    SsmlGender = inputModel.Gender == "Female" ? SsmlVoiceGender.Female : SsmlVoiceGender.Male
+				    };
 
-				var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
-				var filePath = Path.Combine(timeFolderDirectory, fileName);
-				await System.IO.File.WriteAllBytesAsync(filePath, response.AudioContent.ToByteArray());
+				    var audioConfig = new AudioConfig
+				    {
+					    AudioEncoding = AudioEncoding.Mp3
+				    };
 
-				audioUrls.Add($"/audio/{timeFolder}/{fileName}");
-			}
+				    var response = await client.SynthesizeSpeechAsync(input, voice, audioConfig);
 
-			audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder));
+				    var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
+				    var filePath = Path.Combine(timeFolderDirectory, fileName);
+				    await System.IO.File.WriteAllBytesAsync(filePath, response.AudioContent.ToByteArray());
 
-			return new JsonResult(audioUrls);
+				    audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+
+                    
+                }
+                else
+                {
+                    Console.WriteLine("유효하지 않은 enum 문자열입니다.");
+                }
+            }
+
+            audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder));
+
+            return new JsonResult(audioUrls);
 		}
 
 		private async Task<IActionResult> HandleAzureService()
@@ -241,32 +262,43 @@ namespace TTSUnify.Pages
 
             foreach (var inputModel in UserInputs)
             {
-                var inputText = inputModel.Text;
 
-                speechConfig.SpeechSynthesisVoiceName = inputModel.Gender == "Female" ? "ko-KR-YuJinNeural" : "ko-KR-HyunsuNeural";
-                speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
+                if (System.Enum.TryParse(inputModel.Voice, out AZUREVOICE voiceEnum))
+                {
 
-                using var speechSynthesizer = new SpeechSynthesizer(speechConfig,null);
+                    var description = GetEnumAttribute<Core.Attributes.DescriptionAttribute>(voiceEnum)?.Description;
 
-                var speechSynthesisResult = await speechSynthesizer.SpeakTextAsync(inputText);
-                //if (speechSynthesisResult.Reason is ResultReason.Canceled)
-                //{
-                //    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
-                //    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
+                    var inputText = inputModel.Text;
 
-                //    if (cancellation.Reason == CancellationReason.Error)
-                //    {
-                //        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
-                //        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
-                //        Console.WriteLine($"CANCELED: Did you update the subscription info?");
-                //    }
-                //}
+                    speechConfig.SpeechSynthesisVoiceName = description;
+                    speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
 
-                var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
-                var filePath = Path.Combine(timeFolderDirectory, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, speechSynthesisResult.AudioData);
+                    using var speechSynthesizer = new SpeechSynthesizer(speechConfig, null);
 
-                audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+                    var speechSynthesisResult = await speechSynthesizer.SpeakTextAsync(inputText);
+                    //if (speechSynthesisResult.Reason is ResultReason.Canceled)
+                    //{
+                    //    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
+                    //    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
+
+                    //    if (cancellation.Reason == CancellationReason.Error)
+                    //    {
+                    //        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                    //        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
+                    //        Console.WriteLine($"CANCELED: Did you update the subscription info?");
+                    //    }
+                    //}
+
+                    var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
+                    var filePath = Path.Combine(timeFolderDirectory, fileName);
+                    await System.IO.File.WriteAllBytesAsync(filePath, speechSynthesisResult.AudioData);
+
+                    audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+                }
+                else
+                {
+                    Console.WriteLine("유효하지 않은 enum 문자열입니다.");
+                }
 
             }
 
@@ -301,17 +333,27 @@ namespace TTSUnify.Pages
 
             foreach (var inputModel in UserInputs)
             {
-				var inputText = inputModel.Text;
+                if (System.Enum.TryParse(inputModel.Voice, out OPENAIVOICE voiceEnum))
+                {
 
-				var voiceType = inputModel.Gender == "Female" ? GeneratedSpeechVoice.Nova: GeneratedSpeechVoice.Alloy;
+                    var description = GetEnumAttribute<Core.Attributes.DescriptionAttribute>(voiceEnum)?.Description;
 
-                BinaryData speech = await ttsClient.GenerateSpeechAsync(inputText, voiceType);
+                    var inputText = inputModel.Text;
 
-                var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
-                var filePath = Path.Combine(timeFolderDirectory, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, speech.ToArray());
+                    var voiceType = inputModel.Gender == "Female" ? new GeneratedSpeechVoice(description) : new GeneratedSpeechVoice(description);
 
-                audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+                    BinaryData speech = await ttsClient.GenerateSpeechAsync(inputText, voiceType);
+
+                    var fileName = $"{audioFileIndex++}_{Guid.NewGuid()}.mp3";
+                    var filePath = Path.Combine(timeFolderDirectory, fileName);
+                    await System.IO.File.WriteAllBytesAsync(filePath, speech.ToArray());
+
+                    audioUrls.Add($"/audio/{timeFolder}/{fileName}");
+                }
+                else
+                {
+                    Console.WriteLine("유효하지 않은 enum 문자열입니다.");
+                }
             }
 
             audioUrls.Add(AudioCombine(timeFolderDirectory, timeFolder));

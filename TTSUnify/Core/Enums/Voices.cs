@@ -11,17 +11,17 @@ namespace TTSUnify.Core.Enums
 
     public enum OPENAIVOICE
     {
-        [Gender(GENDERVOICE.Male),Description("Alloy")]
+        [Gender(GENDERVOICE.Male),Description("alloy")]
         m_Alloy,
-        [Gender(GENDERVOICE.Male), Description("Echo")]
+        [Gender(GENDERVOICE.Male), Description("echo")]
         m_Echo,
-        [Gender(GENDERVOICE.Male), Description("Fable")]
+        [Gender(GENDERVOICE.Male), Description("fable")]
         m_Fable,
-        [Gender(GENDERVOICE.Male), Description("Onyx")]
+        [Gender(GENDERVOICE.Male), Description("onyx")]
         m_Onyx,
-        [Gender(GENDERVOICE.Female), Description("Nova")]
+        [Gender(GENDERVOICE.Female), Description("nova")]
         f_Nova,
-        [Gender(GENDERVOICE.Female), Description("Shimmer")]
+        [Gender(GENDERVOICE.Female), Description("shimmer")]
         f_Shimmer,
     }
 

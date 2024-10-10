@@ -26,6 +26,10 @@
             overflow-y: scroll;
         }
 
+        audio {
+            width: 100%; /* 부모 요소의 100% 크기로 설정 */
+        }
+
         .audio-item {
             margin-bottom: 10px;
         }
@@ -54,6 +58,46 @@
             resize: none; /* 사용자가 크기를 조절하지 못하게 함 */
             overflow: hidden; /* 스크롤 바 숨김 */
         }
+
+        select, input[type="radio"] {
+            cursor: pointer;
+        }
+
+        select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .voice-options label {
+            display: inline-block;
+        }
+
+        .voice-options input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        .voice-options-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            background-color: #f9f9f9;
+        }
+
+        .voice-options-box.active {
+            display: block;
+        }
+
+        .voice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .voice-options label {
+            margin-left: 5px;
+        }
         
     </style>
 }
@@ -68,48 +112,89 @@
             this.style.height = 20+(this.scrollHeight) + 'px';
         });
 
-
-
         document.addEventListener('DOMContentLoaded', function () {
             let inputCount = 1;
 
             document.getElementById('addButton').addEventListener('click', function () {
-                const inputContainer = document.getElementById('inputContainer');
-                const newInputGroup = document.createElement('div');
-                newInputGroup.className = 'input-group';
 
-                const textarea = document.createElement('textarea');
-                textarea.id = 'autoResize';
-                textarea.name = `UserInputs[${inputCount}].Text`;
-                textarea.className = 'text-input';
-                textarea.placeholder = 'Enter text here';
+                // 새로운 input-group HTML
+                const newInputGroup = `
+                    <div class="input-group">
+                                <textarea id="autoResize" name="UserInputs[${inputCount}].Text" class="text-input" placeholder="Enter text here"></textarea>
+                        <div class="gender-inputs">
+                            <label for="male">
+                                                <input type="radio" name="UserInputs[${inputCount}].Gender" value="Male" onchange="onGenderChange(${inputCount}, 'Male')"> 남성
+                            </label>
+                            <label for="female">
+                                                <input type="radio" name="UserInputs[${inputCount}].Gender" value="Female" onchange="onGenderChange(${inputCount}, 'Female')"> 여성
+                            </label>
+                        </div>
+                                    <div class="voice-options-box" data-index="${inputCount}">
+                                    <div class="voice-options" data-index="${inputCount}"></div>
+                        </div>
+                    </div>
+                `;
 
-                const genderInputs = document.createElement('div');
-                genderInputs.className = 'gender-inputs';
+                // 새로운 input-group을 inputContainer에 추가
+                document.getElementById('inputContainer').insertAdjacentHTML('beforeend', newInputGroup);
 
-                const maleLabel = document.createElement('label');
-                const maleRadio = document.createElement('input');
-                maleRadio.type = 'radio';
-                maleRadio.name = `UserInputs[${inputCount}].Gender`;
-                maleRadio.value = 'Male';
-                maleRadio.checked = true;
-                maleLabel.appendChild(maleRadio);
-                maleLabel.appendChild(document.createTextNode(' 남성'));
+                // const inputContainer = document.getElementById('inputContainer');
+                // const newInputGroup = document.createElement('div');
+                // newInputGroup.className = 'input-group';
 
-                const femaleLabel = document.createElement('label');
-                const femaleRadio = document.createElement('input');
-                femaleRadio.type = 'radio';
-                femaleRadio.name = `UserInputs[${inputCount}].Gender`;
-                femaleRadio.value = 'Female';
-                femaleLabel.appendChild(femaleRadio);
-                femaleLabel.appendChild(document.createTextNode(' 여성'));
+                // const textarea = document.createElement('textarea');
+                // textarea.id = 'autoResize';
+                // textarea.name = `UserInputs[${inputCount}].Text`;
+                // textarea.className = 'text-input';
+                // textarea.placeholder = 'Enter text here';
 
-                genderInputs.appendChild(maleLabel);
-                genderInputs.appendChild(femaleLabel);
+                // const genderInputs = document.createElement('div');
+                // genderInputs.className = 'gender-inputs';
 
-                newInputGroup.appendChild(textarea);
-                newInputGroup.appendChild(genderInputs);
-                inputContainer.appendChild(newInputGroup);
+                // const maleLabel = document.createElement('label');
+                // const maleRadio = document.createElement('input');
+                // maleRadio.type = 'radio';
+                // maleRadio.name = `UserInputs[${inputCount}].Gender`;
+                // maleRadio.value = 'Male';
+                // maleLabel.appendChild(maleRadio);
+                // maleLabel.appendChild(document.createTextNode(' 남성'));
+                // maleRadio.addEventListener('change', (function (currentIndex) {
+                //     return function () {
+                //         onGenderChange(currentIndex, 'Male');
+                //     };
+                // })(inputCount));
+
+                // const femaleLabel = document.createElement('label');
+                // const femaleRadio = document.createElement('input');
+                // femaleRadio.type = 'radio';
+                // femaleRadio.name = `UserInputs[${inputCount}].Gender`;
+                // femaleRadio.value = 'Female';
+                // femaleLabel.appendChild(femaleRadio);
+                // femaleLabel.appendChild(document.createTextNode(' 여성'));
+                // maleRadio.addEventListener('change', (function (currentIndex) {
+                //     return function () {
+                //         onGenderChange(currentIndex, 'Female');
+                //     };
+                // })(inputCount));
+
+                // genderInputs.appendChild(maleLabel);
+                // genderInputs.appendChild(femaleLabel);
+
+                // const voiceOptionsBox = document.createElement('div');
+                // voiceOptionsBox.className = 'voice-options-box'; // class 추가
+                // voiceOptionsBox.setAttribute('data-index', inputCount);  // data-index 추가
+
+                // // Voice Options 컨테이너 생성
+                // const voiceOptions = document.createElement('div');
+                // voiceOptions.className = 'voice-options'; //
+                // voiceOptions.setAttribute('data-index', inputCount);  // data-index 추가
+
+                // voiceOptionsBox.appendChild(voiceOptions);
+
+                // newInputGroup.appendChild(textarea);
+                // newInputGroup.appendChild(genderInputs);
+                // newInputGroup.appendChild(voiceOptionsBox);
+                // inputContainer.appendChild(newInputGroup);
 
                 inputCount++;
             });
@@ -123,106 +208,153 @@
                 event.preventDefault();
 
                 const formData = new FormData(this);
+                console.log(FormData);
 
                 fetch('@Url.Page("Index", "Transform")', {
                     method: 'POST',
                     body: formData
                 })
-                    .then(response => response.json())
-                    .then(audioUrls => {
-                        const audioContainer = document.getElementById('audioContainer');
-                        audioContainer.innerHTML = '';
-                        audioUrls.forEach(function (audioUrl) {
-                            const audioElement = document.createElement('div');
-                            audioElement.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
-                            audioContainer.appendChild(audioElement);
-                        });
-                    })
-                    .catch(() => {
-                        alert("An error occurred while processing your request.");
-                    })
-                    .finally(() => {
-
-                        button.textContent = "Convert to Speech";
-                        button.disabled = false;
-
-                    });
-            });
-
-
-            document.getElementById('combineButton').addEventListener('click', function () {
-                const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                const audioElements = document.querySelectorAll('#audioContainer audio');
-                const filePaths = Array.from(audioElements).map(audio => audio.src);
-
-                fetch('@Url.Page("Index", "Combine")', {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': csrfToken,
-                        'Content-Type': 'application/json; charset=utf-8'
-                    },
-                    body: JSON.stringify(filePaths)
-                })
                 .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const combinedAudioUrl = data.combinedFileUrl;
-
-                            const combinedAudioElement = `<div><audio controls src="${combinedAudioUrl}"></audio></div>`;
-                            document.getElementById('audioContainer').innerHTML += combinedAudioElement;
-                        } else {
-                            alert("Failed to combine audio files.");
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error combining audio files:', error);
+                .then(audioUrls => {
+                    const audioContainer = document.getElementById('audioContainer');
+                    audioContainer.innerHTML = '';
+                    audioUrls.forEach(function (audioUrl) {
+                        const audioElement = document.createElement('div');
+                        audioElement.innerHTML = `<audio controls src="${audioUrl}"></audio>`;
+                        audioContainer.appendChild(audioElement);
                     });
+                })
+                .catch(() => {
+                    alert("An error occurred while processing your request.");
+                })
+                .finally(() => {
+
+                    button.textContent = "Convert to Speech";
+                    button.disabled = false;
+
+                });
             });
 
+            // document.getElementById('combineButton').addEventListener('click', function () {
+            //     const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            //     const audioElements = document.querySelectorAll('#audioContainer audio');
+            //     const filePaths = Array.from(audioElements).map(audio => audio.src);
 
+            //     fetch('@Url.Page("Index", "Combine")', {
+            //         method: 'POST',
+            //         headers: {
+            //             'RequestVerificationToken': csrfToken,
+            //             'Content-Type': 'application/json; charset=utf-8'
+            //         },
+            //         body: JSON.stringify(filePaths)
+            //     })
+            //     .then(response => response.json())
+            //         .then(data => {
+            //             if (data.success) {
+            //                 const combinedAudioUrl = data.combinedFileUrl;
+
+            //                 const combinedAudioElement = `<div><audio controls src="${combinedAudioUrl}"></audio></div>`;
+            //                 document.getElementById('audioContainer').innerHTML += combinedAudioElement;
+            //             } else {
+            //                 alert("Failed to combine audio files.");
+            //             }
+            //         })
+            //         .catch(error => {
+            //             console.error('Error combining audio files:', error);
+            //         });
+            // });
         });
+
+
     </script>
 }
 
-@* <div class="dropdown">
-    <label for="serviceSelect">클라우드 서비스:</label>
-    <select id="serviceSelect", >
-        <option value="google">Google</option>
-        <option value="azure">Azure</option>
-        <option value="openai" selected>OpenAI</option>
-    </select>
-</div> *@
+<script>
+    let VoiceSelecter = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.VoiceSelecter));
+
+    function onTtsServiceChange() {
+            //console.log(data);
+        const selectedTtsService = document.getElementById('ttsService').value;
+        const genderRadios = document.querySelectorAll('input[name="UserInputs[0].Gender"]');
+        const voiceOptionsBox = document.querySelector('.voice-options-box');
+        const voiceOptions = document.querySelector('.voice-options');
+
+        // Reset radio buttons and person options
+        genderRadios.forEach(radio => {
+            radio.disabled = true;
+            radio.checked = false;
+        });
+        voiceOptionsBox.classList.remove('active');
+        voiceOptions.innerHTML = '';
+
+        if (selectedTtsService) {
+            genderRadios.forEach(radio => {
+                radio.disabled = false;
+            });
+        }
+    }
+
+    function onGenderChange(inputIndex, selectedGender) {
+        const selectedTtsService = document.getElementById('ttsService').value;
+        const voiceOptions = document.querySelector(`.voice-options[data-index="${inputIndex}"]`);
+        const voiceOptionsBox = document.querySelector(`.voice-options-box[data-index="${inputIndex}"]`);
+
+        // Filter the data based on the selected restaurant and gender
+        const filteredVoices = VoiceSelecter[selectedTtsService][selectedGender];
+
+        // Reset person options
+        voiceOptions.innerHTML = '';
+
+        // Create radio buttons for each person and display person options box
+        filteredVoices.forEach((voice, index) => {
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.id = `voice${inputIndex}_${index}`;  // inputIndex를 id에 포함하여 고유하게 만듦
+            radio.name = `UserInputs[${inputIndex}].Voice`;  // 그룹을 구분하기 위한 name 속성
+            radio.value = voice;
+
+
+            const label = document.createElement('label');
+            label.htmlFor = `voice${inputIndex}_${index}`;
+            label.textContent = voice;
+
+            const container = document.createElement('div');
+            container.appendChild(radio);
+            container.appendChild(label);
+
+            voiceOptions.appendChild(container);
+        });
+
+        // Show the person options box
+        voiceOptionsBox.classList.add('active');
+    }
+
+</script>
 
 <div class="workspace-container">
     <!-- 작업 공간 -->
     <div class="workspace">
         <form id="ttsForm" method="post">
-            <label for="ttsService">Select TTS Service:</label>
-            <select id="ttsService" name="SelectedTtsService" asp-items="Model.TtsServicesList">
-                @* <option value="">-- Select a service --</option> *@
+            <label>Select TTS Service:</label>
+            <select id="ttsService" name="SelectedTtsService" onchange="onTtsServiceChange()">
+                <option value="">-- Select a service --</option>
+                @foreach (var tts in Model.TtsServicesList)
+                {
+                    <option value="@tts.Value">@tts.Value</option>
+                }
             </select>
             <hr class="solid" />
             <div id="inputContainer">
                 <div class="input-group">
                     <textarea id="autoResize" name="UserInputs[0].Text" class="text-input" placeholder="Enter text here"></textarea>
                     <div class="gender-inputs">
-                        <label><input type="radio" name="UserInputs[0].Gender" value="Male" checked> 남성</label>
-                        <label><input type="radio" name="UserInputs[0].Gender" value="Female"> 여성</label>
+                        <label for="male"><input type="radio" name="UserInputs[0].Gender" value="Male" disabled onchange="onGenderChange(0, 'Male')"> 남성</label>
+                        <label for="female"><input type="radio" name="UserInputs[0].Gender" value="Female" disabled onchange="onGenderChange(0, 'Female')"> 여성</label>
                     </div>
-                    <div id="options">
-                        @if (Model.Options != null)
-                        {
-                            foreach (var option in Model.Options)
-                            {
-                                <button type="button" onclick="alert('Selected: @option')">@option</button>
-                            }
-                        }
+                    <div class="voice-options-box" data-index="0">
+                        <div class="voice-options" data-index="0"></div>
                     </div>
                 </div>
-            </div>
-            <div id="optionsGrid" class="grid" style="margin-top:20px;">
-                <h3>Options</h3>
-
             </div>
             <button id="addButton" type="button">+ Add Input</button>
             <hr class="solid" />
@@ -254,19 +386,8 @@
                 </ul>
             }
         }
-        @* <h2>오디오 파일 목록</h2>
-        <ul>
-            @foreach (var audioFile in Model.AudioFiles)
-            {
-                <li class="audio-item">
-                    <button onclick="playAudio('@audioFile.Url')">▶️ @audioFile.Name</button>
-                </li>
-            }
-        </ul> *@
     </div>
 </div>
-
-@* <button type="button" id="combineButton">Combine Audio</button> *@
 
 
 
