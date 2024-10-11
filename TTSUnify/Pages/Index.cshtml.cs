@@ -6,18 +6,13 @@ using Google.Cloud.TextToSpeech.V1;
 using NAudio.Wave;
 using NAudio.Lame;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Google.Api;
-using static Google.Rpc.Context.AttributeContext.Types;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using OpenAI.Audio;
 using System.ClientModel;
 using OpenAI;
+using OpenAI.Audio;
 using TTSUnify.Core.Enums;
-using Microsoft.CognitiveServices.Speech;
-using static System.Net.Mime.MediaTypeNames;
 using TTSUnify.Core.Attributes;
-using Google.Protobuf.WellKnownTypes;
+using Microsoft.CognitiveServices.Speech;
+
 
 public class UserInputModel
 {
@@ -364,78 +359,123 @@ namespace TTSUnify.Pages
             return new JsonResult(audioUrls);
         }
 
-		public IActionResult OnPostCombine([FromBody] List<string> filePaths)
-		{
+        private string AudioCombine(string timeFolderDirectory, string timeFolder, int samplerate = 24000)
+        {
+            int silenceDurationInMs = 800; // 0.8 seconds
+            var combinedFileName = "combined.mp3";
 
-			var audioDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "audio");
-			var audioFiles = Directory.GetFiles(audioDirectory, "*.mp3").OrderBy(file => file).ToList();
-			var combinedFilePath = Path.Combine(audioDirectory, "combined.mp3");
+            var audioFiles = Directory.GetFiles(timeFolderDirectory, "*.mp3").OrderBy(file => file).ToList();
+            var combinedFilePath = Path.Combine(timeFolderDirectory, combinedFileName);
 
-			// 타겟 샘플레이트 및 채널 설정
-			int targetSampleRate = 24000;
-			int targetChannels = 1;
-			int silenceDurationInMs = 800; // 0.8초
+            // Create silence file for insertion
+            var silenceFilePath = Path.Combine(timeFolderDirectory, "silence.mp3");
+            CreateSilenceFile(silenceFilePath, silenceDurationInMs, samplerate);
 
-			// MP3 파일 병합을 위한 출력 스트림 설정
-			using (var outputStream = new FileStream(combinedFilePath, FileMode.Create))
-			using (var mp3Writer = new LameMP3FileWriter(outputStream, new WaveFormat(targetSampleRate, targetChannels), LAMEPreset.VBR_90))
-			{
-				foreach (var file in audioFiles)
-				{
-					// MP3 파일 복사
-					using (var mp3Reader = new Mp3FileReader(file))
-					{
-						mp3Reader.CopyTo(mp3Writer);
-					}
+            // Generate FFmpeg command for concatenation
+            var concatListPath = Path.Combine(timeFolderDirectory, "concat_list.txt");
+            using (StreamWriter writer = new StreamWriter(concatListPath))
+            {
+                foreach (var file in audioFiles)
+                {
+                    writer.WriteLine($"file '{file.Replace("\\", "/")}'"); // Ensure proper path format
+                    writer.WriteLine($"file '{silenceFilePath.Replace("\\", "/")}'");
+                }
+            }
 
-					// 무음 삽입
-					InsertSilence(mp3Writer, targetSampleRate, targetChannels, silenceDurationInMs);
-				}
-			}
+            // FFmpeg command to concatenate MP3 files
+            string ffmpegCmd = $"ffmpeg -f concat -safe 0 -i \"{concatListPath.Replace("\\", "/")}\" -c copy \"{combinedFilePath.Replace("\\", "/")}\"";
+            RunFFmpeg(ffmpegCmd);
 
-			// 최종 MP3 파일의 URL 반환
-			return new JsonResult(new { combinedFileUrl = "/audio/combined.mp3" });
-		}
+            return $"/audio/{timeFolder}/{combinedFileName}";
+        }
 
-		private string AudioCombine(string timeFolderDirectory, string timeFolder, int samplerate = 24000)
-		{
-			// 타겟 샘플레이트 및 채널 설정
-			int targetSampleRate = samplerate;
-			int targetChannels = 1;
-			int silenceDurationInMs = 800; // 0.8초
-			var combinedFileName = "combined.mp3";
+        private void CreateSilenceFile(string silenceFilePath, int durationInMs, int sampleRate)
+        {
+            // FFmpeg command to create a silent audio file
+            string ffmpegCmd = $"ffmpeg -f lavfi -i anullsrc=r={sampleRate}:cl=mono -t {durationInMs / 1000.0} \"{silenceFilePath.Replace("\\", "/")}\"";
+            RunFFmpeg(ffmpegCmd);
+        }
 
-			var audioFiles = Directory.GetFiles(timeFolderDirectory, "*.mp3").OrderBy(file => file).ToList();
-			var combinedFilePath = Path.Combine(timeFolderDirectory, combinedFileName);
+        private void RunFFmpeg(string command)
+        {
+            // Detect the operating system
+            if (OperatingSystem.IsWindows())
+            {
+                // For Windows
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c {command}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+            }
+            else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            {
+                // For Linux and macOS
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "/bin/bash",
+                        Arguments = $"-c \"{command}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+            }
+        }
 
-			// MP3 파일 병합을 위한 출력 스트림 설정
-			using (var outputStream = new FileStream(combinedFilePath, FileMode.Create))
-			using (var mp3Writer = new LameMP3FileWriter(outputStream, new WaveFormat(targetSampleRate, targetChannels), LAMEPreset.VBR_90))
-			{
-				foreach (var file in audioFiles)
-				{
-					// MP3 파일 복사
-					using (var mp3Reader = new Mp3FileReader(file))
-					{
-						mp3Reader.CopyTo(mp3Writer);
-					}
+        //private string AudioCombine(string timeFolderDirectory, string timeFolder, int samplerate = 24000)
+        //{
+        //    // 타겟 샘플레이트 및 채널 설정
+        //    int targetSampleRate = samplerate;
+        //    int targetChannels = 1;
+        //    int silenceDurationInMs = 800; // 0.8초
+        //    var combinedFileName = "combined.mp3";
 
-					// 무음 삽입
-					InsertSilence(mp3Writer, targetSampleRate, targetChannels, silenceDurationInMs);
-				}
-			}
+        //    var audioFiles = Directory.GetFiles(timeFolderDirectory, "*.mp3").OrderBy(file => file).ToList();
+        //    var combinedFilePath = Path.Combine(timeFolderDirectory, combinedFileName);
 
-			return $"/audio/{timeFolder}/{combinedFileName}";
-		}
+        //    // MP3 파일 병합을 위한 출력 스트림 설정
+        //    using (var outputStream = new FileStream(combinedFilePath, FileMode.Create))
+        //    using (var mp3Writer = new LameMP3FileWriter(outputStream, new WaveFormat(targetSampleRate, targetChannels), LAMEPreset.VBR_90))
+        //    {
+        //        foreach (var file in audioFiles)
+        //        {
+        //            // MP3 파일 복사
+        //            using (var mp3Reader = new Mp3FileReader(file))
+        //            {
+        //                mp3Reader.CopyTo(mp3Writer);
+        //            }
 
-		private void InsertSilence(LameMP3FileWriter writer, int sampleRate, int channels, int durationInMs)
-		{
-			int bytesPerSample = 2 * channels; // 16비트 PCM이므로 2바이트
-			int silenceSamples = (sampleRate * durationInMs) / 1000;
-			byte[] silenceBuffer = new byte[silenceSamples * bytesPerSample];
+        //            // 무음 삽입
+        //            InsertSilence(mp3Writer, targetSampleRate, targetChannels, silenceDurationInMs);
+        //        }
+        //    }
 
-			writer.Write(silenceBuffer, 0, silenceBuffer.Length);
-		}
-	}
+        //    return $"/audio/{timeFolder}/{combinedFileName}";
+        //}
+
+        //private void InsertSilence(LameMP3FileWriter writer, int sampleRate, int channels, int durationInMs)
+        //{
+        //    int bytesPerSample = 2 * channels; // 16비트 PCM이므로 2바이트
+        //    int silenceSamples = (sampleRate * durationInMs) / 1000;
+        //    byte[] silenceBuffer = new byte[silenceSamples * bytesPerSample];
+
+        //    writer.Write(silenceBuffer, 0, silenceBuffer.Length);
+        //}
+    }
 
 }
